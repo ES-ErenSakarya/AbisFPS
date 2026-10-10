@@ -83,7 +83,6 @@ class AbisFPSLauncher:
         self.main_btn.config(text=btn_text, bg=btn_color, state=tk.NORMAL)
 
     def get_ssl_context(self):
-        # Windows SSL sertifika engellerini aşmak için güvenli olmayan bağlam oluşturur
         ctx = ssl.create_default_context()
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
@@ -115,7 +114,6 @@ class AbisFPSLauncher:
             except Exception:
                 continue
 
-        # Eğer API'ye ulaşılamazsa temel dosya kontrolü yap (main.py var mı)
         if not success or not repo_files:
             if not os.path.exists("main.py"):
                 self.root.after(0, lambda: self.set_ui_state("DOWNLOAD", "Oyun dosyaları eksik.", "İNDİR", "#007bff"))
@@ -146,7 +144,10 @@ class AbisFPSLauncher:
             success = False
             last_error = ""
             
+            # Garantili alternatif indirme linkleri (404 hatasını önler)
             repo_zip_urls = [
+                "https://github.com/ES-ErenSakarya/Abis-FPS/archive/refs/heads/main.zip",
+                "https://github.com/ES-ErenSakarya/Abis-FPS/archive/refs/heads/master.zip",
                 "https://codeload.github.com/ES-ErenSakarya/Abis-FPS/zip/refs/heads/main",
                 "https://codeload.github.com/ES-ErenSakarya/Abis-FPS/zip/refs/heads/master"
             ]
