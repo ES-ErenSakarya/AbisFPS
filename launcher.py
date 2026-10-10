@@ -8,6 +8,7 @@ import urllib.request
 import json
 import zipfile
 import shutil
+import ssl
 
 class AbisFPSLauncher:
     def __init__(self, root):
@@ -81,6 +82,13 @@ class AbisFPSLauncher:
         self.status_desc.config(text=text)
         self.main_btn.config(text=btn_text, bg=btn_color, state=tk.NORMAL)
 
+    def get_ssl_context(self):
+        # Windows SSL sertifika engellerini aşmak için güvenli olmayan bağlam oluşturur
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        return ctx
+
     def check_game_status(self):
         repo_files = []
         success = False
@@ -91,11 +99,12 @@ class AbisFPSLauncher:
         ]
         
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        ssl_ctx = self.get_ssl_context()
 
         for url in api_urls:
             try:
                 req = urllib.request.Request(url, headers=headers)
-                with urllib.request.urlopen(req, timeout=5) as response:
+                with urllib.request.urlopen(req, context=ssl_ctx, timeout=5) as response:
                     data = json.loads(response.read().decode())
                     if "tree" in data:
                         for item in data["tree"]:
@@ -106,6 +115,7 @@ class AbisFPSLauncher:
             except Exception:
                 continue
 
+        # Eğer API'ye ulaşılamazsa temel dosya kontrolü yap (main.py var mı)
         if not success or not repo_files:
             if not os.path.exists("main.py"):
                 self.root.after(0, lambda: self.set_ui_state("DOWNLOAD", "Oyun dosyaları eksik.", "İNDİR", "#007bff"))
@@ -134,28 +144,30 @@ class AbisFPSLauncher:
             zip_path = "repo.zip"
             extract_dir = "temp_extracted"
             success = False
+            last_error = ""
             
-            # Doğrudan codeload adresleri (Yönlendirme hatasını önler)
             repo_zip_urls = [
                 "https://codeload.github.com/ES-ErenSakarya/Abis-FPS/zip/refs/heads/main",
                 "https://codeload.github.com/ES-ErenSakarya/Abis-FPS/zip/refs/heads/master"
             ]
 
             headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+            ssl_ctx = self.get_ssl_context()
 
             try:
                 for url in repo_zip_urls:
                     try:
                         req = urllib.request.Request(url, headers=headers)
-                        with urllib.request.urlopen(req, timeout=15) as response, open(zip_path, 'wb') as out_file:
+                        with urllib.request.urlopen(req, context=ssl_ctx, timeout=15) as response, open(zip_path, 'wb') as out_file:
                             shutil.copyfileobj(response, out_file)
                         success = True
                         break
-                    except Exception:
+                    except Exception as e:
+                        last_error = str(e)
                         continue
                 
                 if not success:
-                    raise Exception("Depo dosyaları indirilemedi.")
+                    raise Exception(f"İndirme başarısız oldu. Hata: {last_error}")
 
                 if os.path.exists(extract_dir):
                     shutil.rmtree(extract_dir)
