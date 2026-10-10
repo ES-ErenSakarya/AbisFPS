@@ -4,9 +4,10 @@ import os
 import threading
 import tkinter as tk
 from tkinter import messagebox
-
-# GitHub Reponuz
-REPO_URL = "https://github.com/ES-ErenSakarya/Abis-FPS.git"
+import urllib.request
+import json
+import zipfile
+import shutil
 
 class AbisFPSLauncher:
     def __init__(self, root):
@@ -17,7 +18,7 @@ class AbisFPSLauncher:
         self.root.resizable(False, False)
 
         self.process = None
-        self.current_state = "CHECKING"  # DOWNLOAD, UPDATE, PLAY
+        self.current_state = "CHECKING"  # DOWNLOAD, PLAY
 
         # --- ÜST BAŞLIK ---
         header_frame = tk.Frame(root, bg="#181d24", height=60)
@@ -46,7 +47,7 @@ class AbisFPSLauncher:
         info_box.pack(fill=tk.X, padx=10, pady=(0, 10))
         info_box.pack_propagate(False)
 
-        desc_text = tk.Label(info_box, text="Abis-FPS taktiksel nişancı oyununa hoş geldiniz. Tüm dosyalar ve güncellemeler GitHub reposundan yönetilir.", fg="#a0acbe", bg="#151b22", font=("Arial", 9), justify=tk.LEFT, wraplength=460)
+        desc_text = tk.Label(info_box, text="Abis-FPS taktiksel nişancı oyununa hoş geldiniz. Eksik dosyalar otomatik olarak denetlenir ve onarılır.", fg="#a0acbe", bg="#151b22", font=("Arial", 9), justify=tk.LEFT, wraplength=460)
         desc_text.pack(anchor="w", padx=10, pady=10)
 
         # SAĞ TARAF: Tek Buton Kontrol Paneli
@@ -57,10 +58,10 @@ class AbisFPSLauncher:
         right_title = tk.Label(right_panel, text="OYUN DURUMU", fg="#8a9ba8", bg="#181d24", font=("Arial", 11, "bold"))
         right_title.pack(anchor="w", padx=20, pady=25)
 
-        self.status_desc = tk.Label(right_panel, text="Dosyalar kontrol ediliyor...", fg="#ffaa00", bg="#181d24", font=("Arial", 10))
+        self.status_desc = tk.Label(right_panel, text="Dosyalar GitHub ile karşılaştırılıyor...", fg="#ffaa00", bg="#181d24", font=("Arial", 10))
         self.status_desc.pack(anchor="w", padx=20, pady=10)
 
-        # TEK ANA BUTON (Dinamik: İNDİR / GÜNCELLE / OYNA)
+        # TEK ANA BUTON (Dinamik: İNDİR / ONAR / OYNA)
         self.main_btn = tk.Button(right_panel, text="KONTROL EDİLİYOR...", bg="#555555", fg="white", font=("Arial", 12, "bold"), width=22, height=2, relief=tk.FLAT, command=self.on_main_button_click, state=tk.DISABLED)
         self.main_btn.pack(pady=30, padx=20)
 
@@ -72,7 +73,7 @@ class AbisFPSLauncher:
         footer_label = tk.Label(bottom_frame, text="GitHub: ES-ErenSakarya/Abis-FPS", fg="#7a8b9e", bg="#181d24", font=("Arial", 9))
         footer_label.pack(side=tk.LEFT, padx=15)
 
-        # Arka planda GitHub durum kontrolünü başlat
+        # Arka planda dosya kontrolünü başlat
         threading.Thread(target=self.check_game_status, daemon=True).start()
 
     def set_ui_state(self, state, text, btn_text, btn_color):
@@ -81,70 +82,112 @@ class AbisFPSLauncher:
         self.main_btn.config(text=btn_text, bg=btn_color, state=tk.NORMAL)
 
     def check_game_status(self):
-        # Eğer .git klasörü veya main.py yoksa indirilmesi gerekiyor
-        if not os.path.exists(".git") or not os.path.exists("main.py"):
-            self.set_ui_state("DOWNLOAD", "Oyun dosyaları bilgisayarda yok.", "İNDİR", "#007bff")
-        else:
+        repo_files = []
+        success = False
+        
+        api_urls = [
+            "https://api.github.com/repos/ES-ErenSakarya/Abis-FPS/git/trees/main?recursive=1",
+            "https://api.github.com/repos/ES-ErenSakarya/Abis-FPS/git/trees/master?recursive=1"
+        ]
+        
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+
+        for url in api_urls:
             try:
-                subprocess.run(["git", "fetch"], capture_output=True, text=True, check=True)
-                res = subprocess.run(["git", "status", "-uno"], capture_output=True, text=True, check=True)
-                if "Your branch is behind" in res.stdout:
-                    self.set_ui_state("UPDATE", "Yeni bir güncelleme mevcut!", "GÜNCELLE", "#ff6600")
-                else:
-                    self.set_ui_state("PLAY", "Oyun güncel ve oynamaya hazır.", "OYNA", "#28a745")
+                req = urllib.request.Request(url, headers=headers)
+                with urllib.request.urlopen(req, timeout=5) as response:
+                    data = json.loads(response.read().decode())
+                    if "tree" in data:
+                        for item in data["tree"]:
+                            if item["type"] == "blob":
+                                repo_files.append(item["path"])
+                        success = True
+                        break
             except Exception:
-                self.set_ui_state("PLAY", "Dosyalar hazır.", "OYNA", "#28a745")
+                continue
+
+        if not success or not repo_files:
+            if not os.path.exists("main.py"):
+                self.root.after(0, lambda: self.set_ui_state("DOWNLOAD", "Oyun dosyaları eksik.", "İNDİR", "#007bff"))
+            else:
+                self.root.after(0, lambda: self.set_ui_state("PLAY", "Oyun oynamaya hazır.", "OYNA", "#28a745"))
+            return
+
+        missing_files = [f for f in repo_files if not os.path.exists(f)]
+
+        if missing_files:
+            self.root.after(0, lambda: self.set_ui_state("DOWNLOAD", f"{len(missing_files)} adet eksik dosya bulundu!", "EKSİK DOSYALARI İNDİR", "#007bff"))
+        else:
+            self.root.after(0, lambda: self.set_ui_state("PLAY", "Tüm dosyalar tam ve güncel.", "OYNA", "#28a745"))
 
     def on_main_button_click(self):
         if self.current_state == "DOWNLOAD":
             self.download_game()
-        elif self.current_state == "UPDATE":
-            self.update_game()
         elif self.current_state == "PLAY":
             self.start_game()
 
     def download_game(self):
         self.main_btn.config(state=tk.DISABLED, bg="#555555")
-        self.status_desc.config(text="Oyun indiriliyor...")
+        self.status_desc.config(text="Dosyalar indiriliyor ve onarılıyor...")
         
         def run_download():
-            try:
-                if not os.path.exists(".git"):
-                    subprocess.run(["git", "init"], check=True)
-                    subprocess.run(["git", "remote", "add", "origin", REPO_URL], capture_output=True)
-                
-                # main veya master branch'ini kontrol ederek çek
-                try:
-                    subprocess.run(["git", "pull", "origin", "main"], check=True)
-                except subprocess.CalledProcessError:
-                    subprocess.run(["git", "pull", "origin", "master"], check=True)
+            zip_path = "repo.zip"
+            extract_dir = "temp_extracted"
+            success = False
+            
+            repo_zip_urls = [
+                "https://github.com/ES-ErenSakarya/Abis-FPS/archive/refs/heads/main.zip",
+                "https://github.com/ES-ErenSakarya/Abis-FPS/archive/refs/heads/master.zip"
+            ]
 
-                self.root.after(0, lambda: self.set_ui_state("PLAY", "İndirme tamamlandı!", "OYNA", "#28a745"))
-                messagebox.showinfo("Başarılı", "Oyun GitHub'dan başarıyla indirildi!")
+            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+
+            try:
+                for url in repo_zip_urls:
+                    try:
+                        req = urllib.request.Request(url, headers=headers)
+                        with urllib.request.urlopen(req, timeout=10) as response, open(zip_path, 'wb') as out_file:
+                            shutil.copyfileobj(response, out_file)
+                        success = True
+                        break
+                    except Exception:
+                        continue
+                
+                if not success:
+                    raise Exception("Depo dosyaları indirilemedi.")
+
+                if os.path.exists(extract_dir):
+                    shutil.rmtree(extract_dir)
+                os.makedirs(extract_dir)
+                
+                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                    zip_ref.extractall(extract_dir)
+                
+                subfolders = os.listdir(extract_dir)
+                if subfolders:
+                    source_dir = os.path.join(extract_dir, subfolders[0])
+                    
+                    for item in os.listdir(source_dir):
+                        s = os.path.join(source_dir, item)
+                        d = os.path.join(".", item)
+                        if os.path.exists(d):
+                            if os.path.isdir(d):
+                                shutil.rmtree(d)
+                            else:
+                                os.remove(d)
+                        shutil.move(s, d)
+                
+                shutil.rmtree(extract_dir)
+                if os.path.exists(zip_path):
+                    os.remove(zip_path)
+
+                self.root.after(0, lambda: self.set_ui_state("PLAY", "Onarım tamamlandı!", "OYNA", "#28a745"))
+                messagebox.showinfo("Başارılı", "Eksik dosyalar GitHub'dan başarıyla indirildi ve onarıldı!")
             except Exception as e:
-                self.root.after(0, lambda: self.set_ui_state("DOWNLOAD", "İndirme hatası oluştu.", "İNDİR", "#007bff"))
+                self.root.after(0, lambda: self.set_ui_state("DOWNLOAD", "İndirme hatası oluştu.", "TEKRAR DENE", "#007bff"))
                 messagebox.showerror("Hata", f"İndirme başarısız: {e}")
 
         threading.Thread(target=run_download, daemon=True).start()
-
-    def update_game(self):
-        self.main_btn.config(state=tk.DISABLED, bg="#555555")
-        self.status_desc.config(text="Güncelleniyor...")
-
-        def run_update():
-            try:
-                try:
-                    subprocess.run(["git", "pull", "origin", "main"], check=True)
-                except subprocess.CalledProcessError:
-                    subprocess.run(["git", "pull", "origin", "master"], check=True)
-
-                self.root.after(0, lambda: self.set_ui_state("PLAY", "Güncelleme tamamlandı!", "OYNA", "#28a745"))
-                messagebox.showinfo("Başarılı", "Oyun en son sürüme güncellendi!")
-            except Exception as e:
-                self.root.after(0, lambda: self.set_ui_state("UPDATE", "Güncelleme hatası.", "GÜNCELLE", "#ff6600"))
-                messagebox.showerror("Hata", f"Güncelleme başarısız: {e}")
-
-        threading.Thread(target=run_update, daemon=True).start()
 
     def start_game(self):
         if self.process and self.process.poll() is None:
