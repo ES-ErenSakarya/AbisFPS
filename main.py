@@ -170,5 +170,5 @@ def start_realistic_reload():
         invoke(step5, delay=0.45)
 
 app.run()
-# Güncelleme testi yapıldı
+#
 
