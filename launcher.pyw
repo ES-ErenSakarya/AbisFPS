@@ -12,9 +12,9 @@ import ssl
 class AbisFPSLauncher:
     def __init__(self, root):
         self.root = root
-        self.root.title("Abis-FPS Launcher")
-        self.root.geometry("850x500")
-        self.root.config(bg="#12161c")
+        self.root.title("Abis-FPS : Tactical Warfare Launcher")
+        self.root.geometry("850x520")
+        self.root.config(bg="#0f131a")
         self.root.resizable(False, False)
 
         self.process = None
@@ -23,61 +23,89 @@ class AbisFPSLauncher:
         self.active_branch = "main"
         self.missing_files = []
 
-        # --- ÜST BAŞLIK ---
-        header_frame = tk.Frame(root, bg="#181d24", height=60)
-        header_frame.pack(fill=tk.X, padx=10, pady=10)
+        # --- ÜST BAŞLIK (HEADER) ---
+        header_frame = tk.Frame(root, bg="#161c24", height=65)
+        header_frame.pack(fill=tk.X, padx=12, pady=12)
         header_frame.pack_propagate(False)
 
-        title_lbl = tk.Label(header_frame, text="ABIS-FPS : TACTICAL WARFARE", fg="#00d2ff", bg="#181d24", font=("Arial", 14, "bold"))
+        title_lbl = tk.Label(header_frame, text="ABIS-FPS", fg="#00f0ff", bg="#161c24", font=("Segoe UI", 16, "bold"))
         title_lbl.pack(side=tk.LEFT, padx=20)
 
-        version_lbl = tk.Label(header_frame, text="ES-ErenSakarya/AbisFPS", fg="#7a8b9e", bg="#181d24", font=("Arial", 9, "bold"))
+        sub_title = tk.Label(header_frame, text="// TACTICAL WARFARE", fg="#64748b", bg="#161c24", font=("Segoe UI", 10, "bold"))
+        sub_title.pack(side=tk.LEFT, padx=0)
+
+        version_lbl = tk.Label(header_frame, text="v1.0.0", fg="#94a3b8", bg="#161c24", font=("Segoe UI", 9, "bold"))
         version_lbl.pack(side=tk.RIGHT, padx=20)
 
-        # --- ORTA İÇERİK ---
-        content_frame = tk.Frame(root, bg="#12161c")
-        content_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        # --- ORTA İÇERİK ALANI ---
+        content_frame = tk.Frame(root, bg="#0f131a")
+        content_frame.pack(fill=tk.BOTH, expand=True, padx=12, pady=0)
 
-        left_panel = tk.Frame(content_frame, bg="#181d24", width=500)
-        left_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=False, padx=(0, 5))
+        # SOL TARAF: Görsel / Banner Kartı
+        left_panel = tk.Frame(content_frame, bg="#161c24", width=490)
+        left_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=False, padx=(0, 6), pady=(0, 12))
         left_panel.pack_propagate(False)
 
-        banner_lbl = tk.Label(left_panel, text="[ OYUN GÖRSELİ / BANNER ]\nAbis-FPS", fg="#ffffff", bg="#1a222d", font=("Arial", 12, "bold"), justify=tk.CENTER)
-        banner_lbl.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        # Oyun Banner Alanı (Şık Tasarım)
+        banner_inner = tk.Frame(left_panel, bg="#11161d")
+        banner_inner.pack(fill=tk.BOTH, expand=True, padx=12, pady=12)
 
-        info_box = tk.Frame(left_panel, bg="#151b22", height=80)
-        info_box.pack(fill=tk.X, padx=10, pady=(0, 10))
+        banner_lbl = tk.Label(banner_inner, text="ABIS-FPS\n\n[ SAVAŞ ALANI GÖRSELİ ]", fg="#38bdf8", bg="#11161d", font=("Segoe UI", 14, "bold"), justify=tk.CENTER)
+        banner_lbl.pack(expand=True)
+
+        # Alt Bilgi Kutusu
+        info_box = tk.Frame(left_panel, bg="#161c24", height=50)
+        info_box.pack(fill=tk.X, padx=12, pady=(0, 12))
         info_box.pack_propagate(False)
 
-        desc_text = tk.Label(info_box, text="Abis-FPS taktiksel nişancı oyununa hoş geldiniz. Eksik dosyalar otomatik olarak denetlenir ve onarılır.", fg="#a0acbe", bg="#151b22", font=("Arial", 9), justify=tk.LEFT, wraplength=460)
-        desc_text.pack(anchor="w", padx=10, pady=10)
+        desc_text = tk.Label(info_box, text="Sistem bütünlüğü ve dosya onarımı aktif.", fg="#94a3b8", bg="#161c24", font=("Segoe UI", 9))
+        desc_text.pack(anchor="w", padx=5, pady=15)
 
-        right_panel = tk.Frame(content_frame, bg="#181d24", width=330)
-        right_panel.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=(5, 0))
+        # SAĞ TARAF: Kontrol Paneli ve Dinamik Buton
+        right_panel = tk.Frame(content_frame, bg="#161c24", width=324)
+        right_panel.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=(6, 0), pady=(0, 12))
         right_panel.pack_propagate(False)
 
-        right_title = tk.Label(right_panel, text="OYUN DURUMU", fg="#8a9ba8", bg="#181d24", font=("Arial", 11, "bold"))
-        right_title.pack(anchor="w", padx=20, pady=25)
+        right_title = tk.Label(right_panel, text="OYUN DURUMU", fg="#cbd5e1", bg="#161c24", font=("Segoe UI", 11, "bold"))
+        right_title.pack(anchor="w", padx=24, pady=30)
 
-        self.status_desc = tk.Label(right_panel, text="Dosyalar GitHub ile karşılaştırılıyor...", fg="#ffaa00", bg="#181d24", font=("Arial", 10))
-        self.status_desc.pack(anchor="w", padx=20, pady=10)
+        self.status_desc = tk.Label(right_panel, text="Bağlantı kontrol ediliyor...", fg="#f59e0b", bg="#161c24", font=("Segoe UI", 10))
+        self.status_desc.pack(anchor="w", padx=24, pady=10)
 
-        self.main_btn = tk.Button(right_panel, text="KONTROL EDİLİYOR...", bg="#555555", fg="white", font=("Arial", 12, "bold"), width=22, height=2, relief=tk.FLAT, command=self.on_main_button_click, state=tk.DISABLED)
-        self.main_btn.pack(pady=30, padx=20)
+        # TEK ANA BUTON (Dinamik ve Modern)
+        self.main_btn = tk.Button(right_panel, text="KONTROL EDİLİYOR...", bg="#334155", fg="#ffffff", font=("Segoe UI", 12, "bold"), width=20, height=2, relief=tk.FLAT, cursor="hand2", command=self.on_main_button_click, state=tk.DISABLED)
+        self.main_btn.pack(pady=40, padx=24)
+        
+        # Buton Hover Efektleri için binding
+        self.main_btn.bind("<Enter>", self.on_btn_enter)
+        self.main_btn.bind("<Leave>", self.on_btn_leave)
 
-        bottom_frame = tk.Frame(root, bg="#181d24", height=40)
-        bottom_frame.pack(fill=tk.X, padx=10, pady=(5, 10))
+        # --- ALT BİLGİ ÇUBUĞU ---
+        bottom_frame = tk.Frame(root, bg="#0f131a", height=35)
+        bottom_frame.pack(fill=tk.X, padx=12, pady=(0, 8))
         bottom_frame.pack_propagate(False)
 
-        footer_label = tk.Label(bottom_frame, text="GitHub: ES-ErenSakarya/AbisFPS", fg="#7a8b9e", bg="#181d24", font=("Arial", 9))
-        footer_label.pack(side=tk.LEFT, padx=15)
+        footer_label = tk.Label(bottom_frame, text="GitHub: ES-ErenSakarya/AbisFPS", fg="#64748b", bg="#0f131a", font=("Segoe UI", 8, "bold"))
+        footer_label.pack(side=tk.LEFT, padx=5)
 
+        # Arka planda kontrolü başlat
         threading.Thread(target=self.check_game_status, daemon=True).start()
+
+    def on_btn_enter(self, e):
+        if self.main_btn['state'] == tk.NORMAL:
+            self.main_btn.config(bg=self.btn_hover_color)
+
+    def on_btn_leave(self, e):
+        if self.main_btn['state'] == tk.NORMAL:
+            self.main_btn.config(bg=self.btn_normal_color)
 
     def set_ui_state(self, state, text, btn_text, btn_color):
         self.current_state = state
         self.status_desc.config(text=text)
         self.main_btn.config(text=btn_text, bg=btn_color, state=tk.NORMAL)
+        self.btn_normal_color = btn_color
+        # Hover için hafif açık tonu hesapla
+        self.btn_hover_color = "#2563eb" if "008" in btn_color or "256" in btn_color or btn_color == "#00b4d8" else "#16a34a"
 
     def get_ssl_context(self):
         ctx = ssl.create_default_context()
@@ -109,17 +137,16 @@ class AbisFPSLauncher:
                 continue
 
         if not success or not self.repo_files:
-            # Eğer API'ye erişilemezse bile zorunlu olarak main.py'yi indirmeyi dene
             self.missing_files = ["main.py"]
-            self.root.after(0, lambda: self.set_ui_state("DOWNLOAD", "Eksik dosyalar indirilebilir.", "EKSİK DOSYALARI İNDİR", "#007bff"))
+            self.root.after(0, lambda: self.set_ui_state("DOWNLOAD", "Eksik dosyalar tespit edildi.", "EKSİK DOSYALARI İNDİR", "#00b4d8"))
             return
 
         self.missing_files = [f for f in self.repo_files if not os.path.exists(f)]
 
         if self.missing_files:
-            self.root.after(0, lambda: self.set_ui_state("DOWNLOAD", f"{len(self.missing_files)} adet eksik dosya bulundu!", "EKSİK DOSYALARI İNDİR", "#007bff"))
+            self.root.after(0, lambda: self.set_ui_state("DOWNLOAD", f"{len(self.missing_files)} adet dosya güncellenecek.", "EKSİK DOSYALARI İNDİR", "#00b4d8"))
         else:
-            self.root.after(0, lambda: self.set_ui_state("PLAY", "Tüm dosyalar tam ve güncel.", "OYNA", "#28a745"))
+            self.root.after(0, lambda: self.set_ui_state("PLAY", "Oyun oynamaya hazır.", "OYNA", "#10b981"))
 
     def on_main_button_click(self):
         if self.current_state == "DOWNLOAD":
@@ -128,8 +155,8 @@ class AbisFPSLauncher:
             self.start_game()
 
     def download_missing_files(self):
-        self.main_btn.config(state=tk.DISABLED, bg="#555555")
-        self.status_desc.config(text="Eksik dosyalar indiriliyor...")
+        self.main_btn.config(state=tk.DISABLED, bg="#334155")
+        self.status_desc.config(text="Dosyalar indiriliyor...")
         
         def run_download():
             headers = {'User-Agent': 'Mozilla/5.0'}
@@ -147,10 +174,8 @@ class AbisFPSLauncher:
                             unique_branches.append(b)
 
                     last_err = None
-                    tried_urls = []
                     for branch in unique_branches:
                         raw_url = f"https://raw.githubusercontent.com/ES-ErenSakarya/AbisFPS/{branch}/{file_path}"
-                        tried_urls.append(raw_url)
                         try:
                             dir_name = os.path.dirname(file_path)
                             if dir_name and not os.path.exists(dir_name):
@@ -166,15 +191,14 @@ class AbisFPSLauncher:
                             continue
                     
                     if not success_file:
-                        raise Exception(f"Denenen Linkler:\n" + "\n".join(tried_urls) + f"\n\nHata: {last_err}")
+                        raise Exception(f"{file_path} indirilemedi: {last_err}")
 
-                self.root.after(0, lambda: self.set_ui_state("PLAY", "Onarım tamamlandı!", "OYNA", "#28a745"))
-                messagebox.showinfo("Başarılı", "Eksik dosyalar başarıyla indirildi ve onarıldı!")
+                self.root.after(0, lambda: self.set_ui_state("PLAY", "Güncelleme tamamlandı!", "OYNA", "#10b981"))
+                messagebox.showinfo("Başarılı", "Tüm oyun dosyaları başarıyla güncellendi!")
             except Exception as e:
                 err_msg = str(e)
-                self.root.after(0, lambda: self.set_ui_state("DOWNLOAD", "İndirme hatası oluştu.", "TEKRAR DENE", "#007bff"))
-                # Hatayı detaylıca kutu içinde göster
-                messagebox.showerror("Detaylı İndirme Hatası", err_msg)
+                self.root.after(0, lambda: self.set_ui_state("DOWNLOAD", "İndirme hatası oluştu.", "TEKRAR DENE", "#00b4d8"))
+                messagebox.showerror("Hata", f"İndirme başarısız: {err_msg}")
 
         threading.Thread(target=run_download, daemon=True).start()
 
@@ -184,7 +208,7 @@ class AbisFPSLauncher:
             return
 
         self.status_desc.config(text="Oyun başlatılıyor...")
-        self.main_btn.config(state=tk.DISABLED, bg="#555555")
+        self.main_btn.config(state=tk.DISABLED, bg="#334155")
 
         def run_main():
             try:
@@ -200,7 +224,7 @@ class AbisFPSLauncher:
             except Exception as e:
                 print(f"Hata: {e}")
             finally:
-                self.root.after(0, lambda: self.set_ui_state("PLAY", "Oyun kapatıldı.", "OYNA", "#28a745"))
+                self.root.after(0, lambda: self.set_ui_state("PLAY", "Oyun kapatıldı.", "OYNA", "#10b981"))
 
         threading.Thread(target=run_main, daemon=True).start()
 
