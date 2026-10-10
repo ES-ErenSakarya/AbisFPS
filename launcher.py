@@ -6,7 +6,6 @@ import tkinter as tk
 from tkinter import messagebox
 import urllib.request
 import json
-import zipfile
 import shutil
 import ssl
 
@@ -20,6 +19,9 @@ class AbisFPSLauncher:
 
         self.process = None
         self.current_state = "CHECKING"  # DOWNLOAD, PLAY
+        self.repo_files = []
+        self.active_branch = "main"
+        self.missing_files = []
 
         # --- ÜST BAŞLIK ---
         header_frame = tk.Frame(root, bg="#181d24", height=60)
@@ -89,111 +91,86 @@ class AbisFPSLauncher:
         return ctx
 
     def check_game_status(self):
-        repo_files = []
         success = False
-        
-        api_urls = [
-            "https://api.github.com/repos/ES-ErenSakarya/Abis-FPS/git/trees/main?recursive=1",
-            "https://api.github.com/repos/ES-ErenSakarya/Abis-FPS/git/trees/master?recursive=1"
-        ]
-        
+        branches = ["main", "master"]
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
         ssl_ctx = self.get_ssl_context()
 
-        for url in api_urls:
+        for branch in branches:
+            url = f"https://api.github.com/repos/ES-ErenSakarya/Abis-FPS/git/trees/{branch}?recursive=1"
             try:
                 req = urllib.request.Request(url, headers=headers)
                 with urllib.request.urlopen(req, context=ssl_ctx, timeout=5) as response:
                     data = json.loads(response.read().decode())
                     if "tree" in data:
+                        self.repo_files = []
                         for item in data["tree"]:
                             if item["type"] == "blob":
-                                repo_files.append(item["path"])
+                                self.repo_files.append(item["path"])
+                        self.active_branch = branch
                         success = True
                         break
             except Exception:
                 continue
 
-        if not success or not repo_files:
+        if not success or not self.repo_files:
             if not os.path.exists("main.py"):
                 self.root.after(0, lambda: self.set_ui_state("DOWNLOAD", "Oyun dosyaları eksik.", "İNDİR", "#007bff"))
             else:
                 self.root.after(0, lambda: self.set_ui_state("PLAY", "Oyun oynamaya hazır.", "OYNA", "#28a745"))
             return
 
-        missing_files = [f for f in repo_files if not os.path.exists(f)]
+        self.missing_files = [f for f in self.repo_files if not os.path.exists(f)]
 
-        if missing_files:
-            self.root.after(0, lambda: self.set_ui_state("DOWNLOAD", f"{len(missing_files)} adet eksik dosya bulundu!", "EKSİK DOSYALARI İNDİR", "#007bff"))
+        if self.missing_files:
+            self.root.after(0, lambda: self.set_ui_state("DOWNLOAD", f"{len(self.missing_files)} adet eksik dosya bulundu!", "EKSİK DOSYALARI İNDİR", "#007bff"))
         else:
             self.root.after(0, lambda: self.set_ui_state("PLAY", "Tüm dosyalar tam ve güncel.", "OYNA", "#28a745"))
 
     def on_main_button_click(self):
         if self.current_state == "DOWNLOAD":
-            self.download_game()
+            self.download_missing_files()
         elif self.current_state == "PLAY":
             self.start_game()
 
-    def download_game(self):
+    def download_missing_files(self):
         self.main_btn.config(state=tk.DISABLED, bg="#555555")
-        self.status_desc.config(text="Dosyalar indiriliyor ve onarılıyor...")
+        self.status_desc.config(text="Eksik dosyalar indiriliyor...")
         
         def run_download():
-            zip_path = "repo.zip"
-            extract_dir = "temp_extracted"
-            success = False
-            last_error = ""
-            
-            # Garantili alternatif indirme linkleri (404 hatasını önler)
-            repo_zip_urls = [
-                "https://github.com/ES-ErenSakarya/Abis-FPS/archive/refs/heads/main.zip",
-                "https://github.com/ES-ErenSakarya/Abis-FPS/archive/refs/heads/master.zip",
-                "https://codeload.github.com/ES-ErenSakarya/Abis-FPS/zip/refs/heads/main",
-                "https://codeload.github.com/ES-ErenSakarya/Abis-FPS/zip/refs/heads/master"
-            ]
-
             headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
             ssl_ctx = self.get_ssl_context()
-
+            
             try:
-                for url in repo_zip_urls:
-                    try:
-                        req = urllib.request.Request(url, headers=headers)
-                        with urllib.request.urlopen(req, context=ssl_ctx, timeout=15) as response, open(zip_path, 'wb') as out_file:
-                            shutil.copyfileobj(response, out_file)
-                        success = True
-                        break
-                    except Exception as e:
-                        last_error = str(e)
-                        continue
-                
-                if not success:
-                    raise Exception(f"İndirme başarısız oldu. Hata: {last_error}")
+                files_to_download = self.missing_files if self.missing_files else ["main.py"]
 
-                if os.path.exists(extract_dir):
-                    shutil.rmtree(extract_dir)
-                os.makedirs(extract_dir)
-                
-                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                    zip_ref.extractall(extract_dir)
-                
-                subfolders = os.listdir(extract_dir)
-                if subfolders:
-                    source_dir = os.path.join(extract_dir, subfolders[0])
+                for file_path in files_to_download:
+                    success_file = False
+                    branches_to_try = [self.active_branch, "main", "master"]
+                    unique_branches = []
+                    for b in branches_to_try:
+                        if b not in unique_branches:
+                            unique_branches.append(b)
+
+                    last_err = None
+                    for branch in unique_branches:
+                        raw_url = f"https://raw.githubusercontent.com/ES-ErenSakarya/Abis-FPS/{branch}/{file_path}"
+                        try:
+                            dir_name = os.path.dirname(file_path)
+                            if dir_name and not os.path.exists(dir_name):
+                                os.makedirs(dir_name, exist_ok=True)
+
+                            req = urllib.request.Request(raw_url, headers=headers)
+                            with urllib.request.urlopen(req, context=ssl_ctx, timeout=10) as response, open(file_path, 'wb') as out_file:
+                                shutil.copyfileobj(response, out_file)
+                            success_file = True
+                            break
+                        except Exception as e:
+                            last_err = e
+                            continue
                     
-                    for item in os.listdir(source_dir):
-                        s = os.path.join(source_dir, item)
-                        d = os.path.join(".", item)
-                        if os.path.exists(d):
-                            if os.path.isdir(d):
-                                shutil.rmtree(d)
-                            else:
-                                os.remove(d)
-                        shutil.move(s, d)
-                
-                shutil.rmtree(extract_dir)
-                if os.path.exists(zip_path):
-                    os.remove(zip_path)
+                    if not success_file:
+                        raise Exception(f"{file_path} indirilemedi: {last_err}")
 
                 self.root.after(0, lambda: self.set_ui_state("PLAY", "Onarım tamamlandı!", "OYNA", "#28a745"))
                 messagebox.showinfo("Başarılı", "Eksik dosyalar GitHub'dan başarıyla indirildi ve onarıldı!")
