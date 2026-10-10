@@ -171,4 +171,4 @@ def start_realistic_reload():
 
 app.run()
 
-# Güncelleme testi yapıld
+# Güncelleme testi yapıldx
