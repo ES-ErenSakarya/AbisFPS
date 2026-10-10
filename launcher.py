@@ -31,7 +31,7 @@ class AbisFPSLauncher:
         title_lbl = tk.Label(header_frame, text="ABIS-FPS : TACTICAL WARFARE", fg="#00d2ff", bg="#181d24", font=("Arial", 14, "bold"))
         title_lbl.pack(side=tk.LEFT, padx=20)
 
-        version_lbl = tk.Label(header_frame, text="ES-ErenSakarya/Abis-FPS", fg="#7a8b9e", bg="#181d24", font=("Arial", 9, "bold"))
+        version_lbl = tk.Label(header_frame, text="ES-ErenSakarya/AbisFPS", fg="#7a8b9e", bg="#181d24", font=("Arial", 9, "bold"))
         version_lbl.pack(side=tk.RIGHT, padx=20)
 
         # --- ORTA İÇERİK ---
@@ -73,7 +73,7 @@ class AbisFPSLauncher:
         bottom_frame.pack(fill=tk.X, padx=10, pady=(5, 10))
         bottom_frame.pack_propagate(False)
 
-        footer_label = tk.Label(bottom_frame, text="GitHub: ES-ErenSakarya/Abis-FPS", fg="#7a8b9e", bg="#181d24", font=("Arial", 9))
+        footer_label = tk.Label(bottom_frame, text="GitHub: ES-ErenSakarya/AbisFPS", fg="#7a8b9e", bg="#181d24", font=("Arial", 9))
         footer_label.pack(side=tk.LEFT, padx=15)
 
         # Arka planda dosya kontrolünü başlat
@@ -97,7 +97,7 @@ class AbisFPSLauncher:
         ssl_ctx = self.get_ssl_context()
 
         for branch in branches:
-            url = f"https://api.github.com/repos/ES-ErenSakarya/Abis-FPS/git/trees/{branch}?recursive=1"
+            url = f"https://api.github.com/repos/ES-ErenSakarya/AbisFPS/git/trees/{branch}?recursive=1"
             try:
                 req = urllib.request.Request(url, headers=headers)
                 with urllib.request.urlopen(req, context=ssl_ctx, timeout=5) as response:
@@ -154,7 +154,7 @@ class AbisFPSLauncher:
 
                     last_err = None
                     for branch in unique_branches:
-                        raw_url = f"https://raw.githubusercontent.com/ES-ErenSakarya/Abis-FPS/{branch}/{file_path}"
+                        raw_url = f"https://raw.githubusercontent.com/ES-ErenSakarya/AbisFPS/{branch}/{file_path}"
                         try:
                             dir_name = os.path.dirname(file_path)
                             if dir_name and not os.path.exists(dir_name):
