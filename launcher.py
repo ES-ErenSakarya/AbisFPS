@@ -135,9 +135,10 @@ class AbisFPSLauncher:
             extract_dir = "temp_extracted"
             success = False
             
+            # Doğrudan codeload adresleri (Yönlendirme hatasını önler)
             repo_zip_urls = [
-                "https://github.com/ES-ErenSakarya/Abis-FPS/archive/refs/heads/main.zip",
-                "https://github.com/ES-ErenSakarya/Abis-FPS/archive/refs/heads/master.zip"
+                "https://codeload.github.com/ES-ErenSakarya/Abis-FPS/zip/refs/heads/main",
+                "https://codeload.github.com/ES-ErenSakarya/Abis-FPS/zip/refs/heads/master"
             ]
 
             headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
@@ -146,7 +147,7 @@ class AbisFPSLauncher:
                 for url in repo_zip_urls:
                     try:
                         req = urllib.request.Request(url, headers=headers)
-                        with urllib.request.urlopen(req, timeout=10) as response, open(zip_path, 'wb') as out_file:
+                        with urllib.request.urlopen(req, timeout=15) as response, open(zip_path, 'wb') as out_file:
                             shutil.copyfileobj(response, out_file)
                         success = True
                         break
@@ -182,7 +183,7 @@ class AbisFPSLauncher:
                     os.remove(zip_path)
 
                 self.root.after(0, lambda: self.set_ui_state("PLAY", "Onarım tamamlandı!", "OYNA", "#28a745"))
-                messagebox.showinfo("Başارılı", "Eksik dosyalar GitHub'dan başarıyla indirildi ve onarıldı!")
+                messagebox.showinfo("Başarılı", "Eksik dosyalar GitHub'dan başarıyla indirildi ve onarıldı!")
             except Exception as e:
                 self.root.after(0, lambda: self.set_ui_state("DOWNLOAD", "İndirme hatası oluştu.", "TEKRAR DENE", "#007bff"))
                 messagebox.showerror("Hata", f"İndirme başarısız: {e}")
