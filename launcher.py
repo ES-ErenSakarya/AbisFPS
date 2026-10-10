@@ -18,7 +18,7 @@ class AbisFPSLauncher:
         self.root.resizable(False, False)
 
         self.process = None
-        self.current_state = "CHECKING"  # DOWNLOAD, PLAY
+        self.current_state = "CHECKING"
         self.repo_files = []
         self.active_branch = "main"
         self.missing_files = []
@@ -38,7 +38,6 @@ class AbisFPSLauncher:
         content_frame = tk.Frame(root, bg="#12161c")
         content_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
 
-        # SOL TARAF: Görsel / Bilgi Alanı
         left_panel = tk.Frame(content_frame, bg="#181d24", width=500)
         left_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=False, padx=(0, 5))
         left_panel.pack_propagate(False)
@@ -53,7 +52,6 @@ class AbisFPSLauncher:
         desc_text = tk.Label(info_box, text="Abis-FPS taktiksel nişancı oyununa hoş geldiniz. Eksik dosyalar otomatik olarak denetlenir ve onarılır.", fg="#a0acbe", bg="#151b22", font=("Arial", 9), justify=tk.LEFT, wraplength=460)
         desc_text.pack(anchor="w", padx=10, pady=10)
 
-        # SAĞ TARAF: Tek Buton Kontrol Paneli
         right_panel = tk.Frame(content_frame, bg="#181d24", width=330)
         right_panel.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=(5, 0))
         right_panel.pack_propagate(False)
@@ -64,11 +62,9 @@ class AbisFPSLauncher:
         self.status_desc = tk.Label(right_panel, text="Dosyalar GitHub ile karşılaştırılıyor...", fg="#ffaa00", bg="#181d24", font=("Arial", 10))
         self.status_desc.pack(anchor="w", padx=20, pady=10)
 
-        # TEK ANA BUTON (Dinamik: İNDİR / ONAR / OYNA)
         self.main_btn = tk.Button(right_panel, text="KONTROL EDİLİYOR...", bg="#555555", fg="white", font=("Arial", 12, "bold"), width=22, height=2, relief=tk.FLAT, command=self.on_main_button_click, state=tk.DISABLED)
         self.main_btn.pack(pady=30, padx=20)
 
-        # --- ALT BİLGİ ÇUBUĞU ---
         bottom_frame = tk.Frame(root, bg="#181d24", height=40)
         bottom_frame.pack(fill=tk.X, padx=10, pady=(5, 10))
         bottom_frame.pack_propagate(False)
@@ -76,7 +72,6 @@ class AbisFPSLauncher:
         footer_label = tk.Label(bottom_frame, text="GitHub: ES-ErenSakarya/AbisFPS", fg="#7a8b9e", bg="#181d24", font=("Arial", 9))
         footer_label.pack(side=tk.LEFT, padx=15)
 
-        # Arka planda dosya kontrolünü başlat
         threading.Thread(target=self.check_game_status, daemon=True).start()
 
     def set_ui_state(self, state, text, btn_text, btn_color):
@@ -93,7 +88,7 @@ class AbisFPSLauncher:
     def check_game_status(self):
         success = False
         branches = ["main", "master"]
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        headers = {'User-Agent': 'Mozilla/5.0'}
         ssl_ctx = self.get_ssl_context()
 
         for branch in branches:
@@ -114,10 +109,9 @@ class AbisFPSLauncher:
                 continue
 
         if not success or not self.repo_files:
-            if not os.path.exists("main.py"):
-                self.root.after(0, lambda: self.set_ui_state("DOWNLOAD", "Oyun dosyaları eksik.", "İNDİR", "#007bff"))
-            else:
-                self.root.after(0, lambda: self.set_ui_state("PLAY", "Oyun oynamaya hazır.", "OYNA", "#28a745"))
+            # Eğer API'ye erişilemezse bile zorunlu olarak main.py'yi indirmeyi dene
+            self.missing_files = ["main.py"]
+            self.root.after(0, lambda: self.set_ui_state("DOWNLOAD", "Eksik dosyalar indirilebilir.", "EKSİK DOSYALARI İNDİR", "#007bff"))
             return
 
         self.missing_files = [f for f in self.repo_files if not os.path.exists(f)]
@@ -138,7 +132,7 @@ class AbisFPSLauncher:
         self.status_desc.config(text="Eksik dosyalar indiriliyor...")
         
         def run_download():
-            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+            headers = {'User-Agent': 'Mozilla/5.0'}
             ssl_ctx = self.get_ssl_context()
             
             try:
@@ -153,8 +147,10 @@ class AbisFPSLauncher:
                             unique_branches.append(b)
 
                     last_err = None
+                    tried_urls = []
                     for branch in unique_branches:
                         raw_url = f"https://raw.githubusercontent.com/ES-ErenSakarya/AbisFPS/{branch}/{file_path}"
+                        tried_urls.append(raw_url)
                         try:
                             dir_name = os.path.dirname(file_path)
                             if dir_name and not os.path.exists(dir_name):
@@ -170,13 +166,15 @@ class AbisFPSLauncher:
                             continue
                     
                     if not success_file:
-                        raise Exception(f"{file_path} indirilemedi: {last_err}")
+                        raise Exception(f"Denenen Linkler:\n" + "\n".join(tried_urls) + f"\n\nHata: {last_err}")
 
                 self.root.after(0, lambda: self.set_ui_state("PLAY", "Onarım tamamlandı!", "OYNA", "#28a745"))
-                messagebox.showinfo("Başarılı", "Eksik dosyalar GitHub'dan başarıyla indirildi ve onarıldı!")
+                messagebox.showinfo("Başarılı", "Eksik dosyalar başarıyla indirildi ve onarıldı!")
             except Exception as e:
+                err_msg = str(e)
                 self.root.after(0, lambda: self.set_ui_state("DOWNLOAD", "İndirme hatası oluştu.", "TEKRAR DENE", "#007bff"))
-                messagebox.showerror("Hata", f"İndirme başarısız: {e}")
+                # Hatayı detaylıca kutu içinde göster
+                messagebox.showerror("Detaylı İndirme Hatası", err_msg)
 
         threading.Thread(target=run_download, daemon=True).start()
 
